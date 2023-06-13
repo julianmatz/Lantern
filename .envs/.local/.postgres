@@ -1,0 +1,7 @@
+# PostgreSQL
+# ------------------------------------------------------------------------------
+POSTGRES_HOST=lantern-db1.ie.cirrusinvicta.com
+POSTGRES_PORT=5432
+POSTGRES_DB=lantern_v0_1_0
+POSTGRES_USER=lantern
+POSTGRES_PASSWORD=AEwPnqBP2H5UPBJ8rXNK
