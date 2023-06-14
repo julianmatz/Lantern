@@ -1,3 +1,4 @@
+import sys
 import argparse
 import base64
 import json
@@ -21,7 +22,7 @@ env = args.env
 namespace = args.namespace
 
 # Define the paths for the input and output files
-secrets_file = os.path.join(__dir__, ".secrets/.", env, ".json")
+secrets_file = os.path.join(__dir__, ".secrets", f".{env}.json")
 sealed_secrets_yaml_file = os.path.join(__dir__, "kubernetes/sealedsecrets.yml")  # Sealed secrets file
 env_file = os.path.join(__dir__, ".env")  # .env file in the project's root directory
 
