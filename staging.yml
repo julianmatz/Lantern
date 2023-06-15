@@ -1,31 +1,86 @@
 version: '3'
 
 volumes:
-  lantern_staging_postgres_data: {}
-  lantern_staging_postgres_data_backups: {}
+  production_postgres_data: {}
+  production_postgres_data_backups: {}
+  production_traefik: {}
 
 services:
   django: &django
-    image: <your_registry>/lantern_staging_django
-    container_name: lantern_staging_django
+    build:
+      context: .
+      dockerfile:
+        ./compose/production/django/Dockerfile
+      args:
+        # These variable can be defined in an .env file in the root of the repo
+        DJANGO_AWS_STORAGE_BUCKET_NAME: ${DJANGO_AWS_STORAGE_BUCKET_NAME}
+        DJANGO_AWS_S3_CUSTOM_DOMAIN: ${DJANGO_AWS_S3_CUSTOM_DOMAIN}
+
+    image: lantern_production_django
     depends_on:
       - postgres
       - redis
-      - mailhog
     env_file:
-      - ./.envs/.staging/.django
-      - ./.envs/.staging/.postgres
-    ports:
-      - '8000:8000'
+      #- ${ENV_DJANGO_PROD}
+      #- ${ENV_POSTGRES_STAGING}
+      #env_file:
+      #- ./.envs/.production/.django
+      #- ./.envs/.production/.postgres
+      - ./.env
+        #environment:
+        #- REDIS_URL=${REDIS_URL}
     command: /start
 
   postgres:
-    image: <your_registry>/lantern_staging_postgres
-    container_name: lantern_staging_postgres
+    build:
+      context: .
+      dockerfile: ./compose/production/postgres/Dockerfile
+    image: lantern_production_postgres
     volumes:
-      - lantern_staging_postgres_data:/var/lib/postgresql/data
-      - lantern_staging_postgres_data_backups:/backups
+      - production_postgres_data:/var/lib/postgresql/data
+      - production_postgres_data_backups:/backups
     env_file:
-      - ./.envs/.staging/.postgres
+      - ./.env
+        #- ./.envs/.production/.postgres
 
-  # (rest of your services go here, with each build context replaced by a Docker image name)
+  traefik:
+    build:
+      context: .
+      dockerfile: ./compose/production/traefik/Dockerfile
+    image: lantern_production_traefik
+    depends_on:
+      - django
+    volumes:
+      - production_traefik:/etc/traefik/acme
+    ports:
+      - '0.0.0.0:80:80'
+      - '0.0.0.0:443:443'
+      - '0.0.0.0:5555:5555'
+
+  redis:
+    image: redis:6
+
+  celeryworker:
+    <<: *django
+    image: lantern_production_celeryworker
+    command: /start-celeryworker
+
+  celerybeat:
+    <<: *django
+    image: lantern_production_celerybeat
+    command: /start-celerybeat
+
+  flower:
+    <<: *django
+    image: lantern_production_flower
+    command: /start-flower
+
+  awscli:
+    build:
+      context: .
+      dockerfile: ./compose/production/aws/Dockerfile
+    env_file:
+      - ./.env
+        #- ./.envs/.production/.django
+    volumes:
+      - production_postgres_data_backups:/backups:z
