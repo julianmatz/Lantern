@@ -1,0 +1,31 @@
+version: '3'
+
+volumes:
+  lantern_staging_postgres_data: {}
+  lantern_staging_postgres_data_backups: {}
+
+services:
+  django: &django
+    image: <your_registry>/lantern_staging_django
+    container_name: lantern_staging_django
+    depends_on:
+      - postgres
+      - redis
+      - mailhog
+    env_file:
+      - ./.envs/.staging/.django
+      - ./.envs/.staging/.postgres
+    ports:
+      - '8000:8000'
+    command: /start
+
+  postgres:
+    image: <your_registry>/lantern_staging_postgres
+    container_name: lantern_staging_postgres
+    volumes:
+      - lantern_staging_postgres_data:/var/lib/postgresql/data
+      - lantern_staging_postgres_data_backups:/backups
+    env_file:
+      - ./.envs/.staging/.postgres
+
+  # (rest of your services go here, with each build context replaced by a Docker image name)
